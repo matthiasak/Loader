@@ -9,6 +9,12 @@ This Loader utility is a very simple utility class that acts as a dependency loa
 	> npm install -g mocha 
 	> mocha
 
+Make sure to require jquery, and pass it as input
+
+	var $ = require("jquery"),
+		Class = require("./Loader")($),
+		Loader = Class.Loader;
+
 #### on the Browser
 
 include jQuery (only prerequisite)
