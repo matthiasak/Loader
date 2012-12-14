@@ -13,6 +13,12 @@ This Loader utility is a very simple utility class that acts as a dependency loa
 
 include jQuery (only prerequisite)
 
+	<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+	<script src="./Loader.min.js"></script>
+	<script>
+		// use Loader ..
+	</script>
+
 #### Usage
 
 	var loader = new Loader();
