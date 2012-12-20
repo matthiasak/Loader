@@ -8,7 +8,7 @@ This Loader utility is a very simple utility class that acts as
 You can use it to
 
 1. Load scripts (like a dependency injection system)
-
+`
 
 	var loader = new Loader();
 	
@@ -21,9 +21,9 @@ You can use it to
 			alert('success!')
 		})
 
-
+`
 2. Load templates (same, but for managing templates)
-
+`
 
 	var loader = new Loader();
 
@@ -44,7 +44,7 @@ You can use it to
 				.append(itemTmpl(data));
 		})
 
-
+`
 #### on Node.JS
 
 	> npm install
