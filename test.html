@@ -11,14 +11,49 @@
 			'http://cdnjs.cloudflare.com/ajax/libs/angular.js/1.0.3/angular.min.js',
 			'http://cdnjs.cloudflare.com/ajax/libs/davis.js/0.9.5/davis.min.js'
 		];
+
+		var templatesToLoad = [
+			'templates/user',
+			'templates/item'
+		];
+
+		var data = {
+			users: [{ name: "Matt" }],
+			profile_image_url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaPIEUqI2Jbj3KRTVHcyHvt7rcq-XxmqCwdkq4mz8L_QuaqStz", 
+			text: "hello"
+		};
 		
-		loader.load(scriptsToLoad)
+		loader.load.apply(loader, scriptsToLoad)
 			.then(function(){
 				/// success
-				alert('success!')
+				// alert('success!')
 			})
 			.fail(function(){
 				throw new Error("Failed to load")
+			})
+
+		// $.get(el) from localhost won't work when trying to just open an html file in Chrome, 
+        // so run node server.js and navigate to http://localhost:8888/ 
+        // 
+        // for more info:
+        // (http://stackoverflow.com/questions/8456538/origin-null-is-not-allowed-by-access-control-allow-origin/8456586#8456586)
+        
+		loader.template.apply(loader, templatesToLoad)
+			.then(function(user, item){
+				$('body').append(user(data)).append(item(data));
+				// console.log(tmpl(templateContent), tmpl(templateContent, ))
+			})
+			.fail(function(){
+
+			})
+
+		loader.template(templatesToLoad[0])
+			.then(function(user){
+				$('body').append(user(data));
+				// console.log(tmpl(templateContent), tmpl(templateContent, ))
+			})
+			.fail(function(){
+
 			})
 	</script>
 </head>

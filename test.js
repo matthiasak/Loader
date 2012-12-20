@@ -12,7 +12,7 @@ describe('Loader', function(){
 			'http://cdnjs.cloudflare.com/ajax/libs/davis.js/0.9.5/davis.min.js'
 		];
 		
-		loader.load(scriptsToLoad)
+		loader.load.apply(loader, scriptsToLoad)
 			.then(function(){
 				/// success
 			})
@@ -22,7 +22,7 @@ describe('Loader', function(){
 	});
 })
 
-describe('Loader', function(){
+describe('Loader cached', function(){
 	it('should return a cached version of the files', function() {
 		var loader = new Loader();
 		
@@ -31,12 +31,12 @@ describe('Loader', function(){
 			'http://cdnjs.cloudflare.com/ajax/libs/davis.js/0.9.5/davis.min.js'
 		];
 		
-		$.when(loader.load(scriptsToLoad)).then(function(){
-			loader.load(scriptsToLoad)
+		$.when(loader.load.apply(loader, scriptsToLoad)).then(function(){
+			loader.lood.apply(loader, scriptsToLoad)
 				.then(function(){
 					/// success
 				})
-				.fail(function(){
+				.error(function(){
 					throw new Error("Failed to load")
 				})
 		})

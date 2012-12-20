@@ -1,0 +1,5 @@
+<div>
+	<img src="<%=profile_image_url%>"/>
+	<p><%=text%></p>
+</div>
+<hr>

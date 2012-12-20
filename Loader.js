@@ -57,10 +57,58 @@
     };
 })();
 
-var Loader = function($){
+//from http://ejohn.org/blog/javascript-micro-templating/
+(function(){
+  var cache = {};
+  
+  this.tmpl = function tmpl(str, data){
+    // Figure out if we're getting a template, or if we need to
+    // load the template - and be sure to cache the result.
+    var fn = !/\W/.test(str) ?
+      cache[str] = cache[str] ||
+        tmpl(document.getElementById(str).innerHTML) :
+      
+      // Generate a reusable function that will serve as a template
+      // generator (and which will be cached).
+      new Function("obj",
+        "var p=[],print=function(){p.push.apply(p,arguments);};" +
+        
+        // Introduce the data as local variables using with(){}
+        "with(obj){p.push('" +
+        
+        // Convert the template into pure JavaScript
+        str
+          .replace(/[\r\t\n]/g, " ")
+          .split("<%").join("\t")
+          .replace(/((^|%>)[^\t]*)'/g, "$1\r")
+          .replace(/\t=(.*?)%>/g, "',$1,'")
+          .split("\t").join("');")
+          .split("%>").join("p.push('")
+          .split("\r").join("\\'")
+      + "');}return p.join('');");
+    
+    // Provide some basic currying to the user
+    return data ? fn( data ) : fn;
+  };
+})();
+
+var _Loader = function($){
     return Class.extend({
         init : function(){
             this.cache = {};
+            this.templates = {};
+        },
+        _load : function(el, i, dfds){
+            var self = this;
+            
+            if(self.cache[el]){
+                var dfd = $.Deferred();
+                dfd.resolve();
+                dfds[i] = dfd;
+                return dfd.promise();
+            }
+            
+            dfds[i] = $.getScript(el).then(function(){ self.cache[el] = true; });
         },
         load : function(){
             var args = Array.prototype.slice.call(arguments),
@@ -69,20 +117,42 @@ var Loader = function($){
 
             if(!args.length) {
                 var dfd = $.Deferred();
-                dfd.resolve();
+                dfd.fail();
                 return dfd.promise();
             }
-            
-            for(var i in args[0]){
-                (function(el, i){
-                    if(self.cache[el]){
-                        var dfd = $.Deferred();
-                        dfd.resolve();
-                        return dfd.promise();
-                    }
-                    
-                    dfds[i] = $.getScript(el).then(function(){ self.cache[el] = true; });
-                })(args[0][i], i);
+
+            for(var i in args){
+                this._load(args[i], i, dfds);
+            }
+
+            return $.when.apply($, dfds);
+        },
+        _template : function(el, i, dfds){
+            var self = this;
+
+            if(this.templates[el]){
+                dfds[i] = this.templates[el];
+                return;
+            }
+
+            dfds[i] = $.get(el).pipe(function(templateContent){
+                self.templates[el] = tmpl(templateContent);
+                return self.templates[el];
+            });
+        },
+        template : function(){
+            var args = Array.prototype.slice.call(arguments),
+                dfds = [],
+                self = this;
+
+            if(!args.length) {
+                var dfd = $.Deferred();
+                dfd.fail();
+                return dfd.promise();
+            }
+
+            for(var i in args){
+                this._template(args[i], i, dfds);
             }
 
             return $.when.apply($, dfds);
@@ -93,9 +163,8 @@ var Loader = function($){
 var browser = (typeof exports === 'undefined');
 if(!browser){
     module.exports = function($){
-        var _Loader = Loader($);
-        return {Loader: _Loader};
+        return {Loader: _Loader($)};
     }
 } else {
-    window.Loader = Loader($);
+    window.Loader = _Loader($);
 }
