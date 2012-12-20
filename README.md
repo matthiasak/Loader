@@ -9,6 +9,7 @@ You can use it to
 
 1. Load scripts (like a dependency injection system)
 
+
 	var loader = new Loader();
 	
 	loader.load(
@@ -20,7 +21,9 @@ You can use it to
 			alert('success!')
 		})
 
+
 2. Load templates (same, but for managing templates)
+
 
 	var loader = new Loader();
 
@@ -40,6 +43,7 @@ You can use it to
 				.append(userTmpl(data))
 				.append(itemTmpl(data));
 		})
+
 
 #### on Node.JS
 
