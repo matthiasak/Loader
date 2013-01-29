@@ -1,83 +1,50 @@
-## Loader class
+## jqLocalStorage class
 
-This Loader utility is a very simple utility class that acts as
+This jqLocalStorage utility is a very simple utility class that acts as a resource loader and manager for javascript and CSS
 
-1. a dependency loader - js and css
-2. a templating manager
+It will load external scripts and stylesheets via script tag / src injection, otherwise you can pass any CORS supported servers the {CORS: true} option when making calls:
+	
+	var files = [
+		{url: "/vendor/raphael-min.js"},
+		{url: "./styles.css"}
+	]
+	$.cacheFiles(files).then(function(){
+		// do something after
+		console.log('all files loaded and cached!')
+	});
 
-It will load external scripts via script tag / src injection, otherwise you can pass any CORS supported servers the {CORS: true} option when making calls:
+All CORS and local files will be loaded and stored under HTML5 Local Storage. Any CSS will even be compressed and minified before storage!
 
-	var scriptsToLoad = [
-		{url:'/scripts/lodash.min.js', CORS: true},
-	];
+## How to use jqLocalStorage
 
-	loader.load.apply(loader, scriptsToLoad)
+	var files = [
+		
+		// js files
 
-	// or
+		{url: "/vendor/raphael-min.js"},
+		{url: "/vendor/angular.min.js"},
+		{url: "/vendor/lodash.min.js"},
+		{url: "/vendor/backbone-min.js"},
+		{url: "/vendor/d3.v3.min.js"},
+		{url: "/vendor/fineuploader.min.js"},
 
-	loader.load({url:'/scripts/lodash.min.js', CORS: true})
+		// and css files can be intermixed in the same call
 
-All CORS and local scripts will be loaded and stored under HTML5 Local Storage. Any CSS loaded the Loader will even be compressed and minified when stored into Local Storage!
-
-## How to use Loader
-
-	var loader = new Loader();	
-	var scriptsToLoad = [
-		{url:'/scripts/lodash.min.js'},
-		{url:'/scripts/backbone-min.js'},
-		{url:'/scripts/davis.min.js'},
-		{url:"/scripts/d3.v3.min.js"},
-		{url:'/scripts/davis.min.js'}
-	];
-
-	var templatesToLoad = [
-		'templates/user',
-		'templates/item'
-	];
-
-	var stylesToLoad = [
-		{url:'/css/main.css'},
-		{url:'/css/960.css'}
-	];
-
-	loader.load.apply(loader, scriptsToLoad)
-		.then(function(){
-			// console.log(Davis);
-		})
-		.fail(function(){
-			throw new Error("Failed to load")
-		})
-	        
-	loader.template.apply(loader, templatesToLoad)
-		.then(function(user, item){
-			$('body').append(user(data)).append(item(data));
-			// console.log(tmpl(templateContent), tmpl(templateContent, ))
-		})
-		.fail(function(){
-
-		})
-
-	loader.css.apply(loader, stylesToLoad);
-
-## on Node.JS
-
-	> npm install
-	# if you don't have mocha
-	> npm install -g mocha 
-	> mocha
-
-	// Make sure to require jquery, and pass it as input
-
-	var $ = require("jquery"),
-		Class = require("./Loader")($),
-		Loader = Class.Loader;
+		{url: "./styles.css"},
+		{url: "/vendor/normalize.css"},
+		{url: "/vendor/font-awesome.min.css"}
+	]
+	$.cacheFiles(files).then(function(){
+		// do something after
+		console.log('all files loaded and cached!')
+	});
 
 ## on the Browser
 
 include jQuery (only prerequisite)
 
 	<script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
-	<script src="./Loader.min.js"></script>
+	<script src="./jqLocalStorage.min.js"></script>
 	<script>
 		// use Loader ..
 	</script>

@@ -1,63 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Example 1 - Forms</title>
-	<script src="/scripts/jquery.min.js"></script>
-	<script src="./Loader.js"></script>
+	<title>Optimizing resources with Local Storage</title>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	<script src="./jqLocalStorage.js"></script>
 </head>
-	<body>
-		<script>
-			var loader = new Loader();
-			
-			var scriptsToLoad = [
-				{url:'/scripts/lodash.min.js'},
-				{url:'/scripts/backbone-min.js'},
-				{url:'/scripts/davis.min.js'},
-				{url:"/scripts/d3.v3.min.js"},
-				{url:'/scripts/davis.min.js'}
-			];
-
-			var templatesToLoad = [
-				'templates/user',
-				'templates/item'
-			];
-
-			var stylesToLoad = [
-				{url:'/css/main.css'},
-				{url:'/css/960.css'}
-			];
-
-			var data = {
-				users: [{ name: "Matt" }],
-				profile_image_url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaPIEUqI2Jbj3KRTVHcyHvt7rcq-XxmqCwdkq4mz8L_QuaqStz", 
-				text: "hello"
-			};
-			
-			loader.load.apply(loader, scriptsToLoad)
-				.then(function(){
-					// console.log(Davis);
-				})
-				.fail(function(){
-					throw new Error("Failed to load")
-				})
-
-			// $.get(el) from localhost won't work when trying to just open an html file in Chrome, 
-	        // so run node server.js and navigate to http://localhost:8888/ 
-	        // 
-	        // for more info:
-	        // (http://stackoverflow.com/questions/8456538/origin-null-is-not-allowed-by-access-control-allow-origin/8456586#8456586)
-	        
-			loader.template.apply(loader, templatesToLoad)
-				.then(function(user, item){
-					$('body').append(user(data)).append(item(data));
-					// console.log(tmpl(templateContent), tmpl(templateContent, ))
-				})
-				.fail(function(){
-
-				})
-
-			loader.css.apply(loader, stylesToLoad);
-
-		</script>
-	</body>
+<body>
+	<div class="container">
+		<div class="ten columns offset-by-three">
+			<h1>Test Form</h1>
+			<form class="CatForm" action="#">
+				<label for="test">Test</label>
+				<input name="test" type="text" placeholder="test" autofocus required>
+				<hr>
+				<button>Submit</button>
+			</form>
+		</div>
+	</div>
+	<script>
+		var files = [
+			{url: "/vendor/raphael-min.js"},
+			{url: "/vendor/angular.min.js"},
+			{url: "/vendor/lodash.min.js"},
+			{url: "/vendor/backbone-min.js"},
+			{url: "/vendor/d3.v3.min.js"},
+			{url: "/vendor/fineuploader.min.js"},
+			{url: "./styles.css"},
+			{url: "/vendor/normalize.css"},
+			{url: "/vendor/font-awesome.min.css"}
+		]
+		$.cacheFiles(files).then(function(){
+			// do something after
+			console.log('all files loaded and cached!')
+		});
+	</script>
+</body>
 </html>
