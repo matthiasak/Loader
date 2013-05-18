@@ -2,8 +2,8 @@
 <html>
 <head>
 	<title>Optimizing resources with Local Storage</title>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-	<script src="./jqLocalStorage.min.js"></script>
+	<script async src="loader.js"></script>
+	<link href="styles.css">
 </head>
 <body>
 	<div class="container">
@@ -25,13 +25,14 @@
 			{url: "/vendor/backbone-min.js"},
 			{url: "/vendor/d3.v3.min.js"},
 			{url: "/vendor/fineuploader.min.js"},
-			{url: "./styles.css"},
+			{url: "/styles.css"},
 			{url: "/vendor/normalize.css"},
 			{url: "/vendor/font-awesome.min.css"}
-		]
-		$.cacheFiles(files).then(function(){
-			// do something after
-			console.log('all files loaded and cached!')
+		];
+
+		var a = new Loader();
+		a.load.apply(a, files).then(function(){
+			console.log('yippee!')
 		});
 	</script>
 </body>
