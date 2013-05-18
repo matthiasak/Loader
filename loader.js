@@ -171,8 +171,9 @@
                             e === a && j.done(g, f)
                         }
                     }
-                    for (var a = b.length, e = 0, j = new k, g = [], f = [], d = 0; d < a; d++) b[d]().then(c(d));
-                    return j
+                    for (var a = b.length, e = 0, j = new k, g = [], f = [], d = 0; d < a; d++)
+                        b[d]().then(c(d));
+                    return j;
                 },
                 chain: l,
                 ajax: n,
@@ -446,16 +447,18 @@
             var args = [].slice.call(arguments),
                 len = args.length,
                 promises = [],
-                promise;
+                self = this,
+                p;
 
             for(var i=0; i<len; i++){
-                promises.push( this.loadFile(args[i]) );
+                promises.push(
+                    (function(file){
+                        return function(){ return self.loadFile(file); };
+                    })(args[i])
+                );
             }
 
-            promise = this.promise.join.apply(this.promise, promises);
-            promise.done();
-
-            return promise;
+            return this.promise.join(promises);
         },
         loadFile: function(file){
             var url = file.url,
@@ -571,24 +574,33 @@
         },
         loadAndInjectStyleTag: function(file){
             var self = this,
-                url = file.url;
+                url = file.url,
+                p = new this.promise.Promise();
 
-            return this.promise.get(url).then(function(error, result){
+            this.promise.get(url).then(function(error, result){
                 self.addExpiration(file);
                 file.text = self.replaceURLs(url, self.cssmin(result));
                 self.set(url, file);
                 self.injectStyleTagByText(result);
+                p.done();
             });
+
+            return p;
         },
         loadAndInjectScriptTag: function(file){
             var self = this,
-                url = file.url;
-            return this.promise.get(url).then(function(error, result){
+                url = file.url,
+                p = new this.promise.Promise();
+
+            this.promise.get(url).then(function(error, result){
                 self.addExpiration(file);
                 file.text = result;
                 self.set(url, file);
                 self.injectScriptTagByText(result);
+                p.done();
             });
+
+            return p;
         }
     });
     win.Loader = Loader;
