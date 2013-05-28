@@ -67,6 +67,8 @@
             } else {
                 window.attachEvent("onstorage", this.localStorageEventHandler);
             }
+            this.defaultExpiration = 24; //hours
+            this.clear();
         },
         localStorageEventHandler: function(e) {
             var event = e || window.event
