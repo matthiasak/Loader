@@ -1,6 +1,14 @@
 ;(function(win, undef) {
-    function Loader(){
+    function Loader(build_id){
         this.init();
+        this.build = this.get('build_id');
+        if(build_id && build_id != this.build){
+            this.build = build_id;
+            this.clear(true);
+            this.set('build_id', build_id);
+        } else {
+            this.clear();
+        }
     }
 
     Loader.prototype.init = function(){
@@ -10,8 +18,7 @@
         } else {
             window.attachEvent("onstorage", this.localStorageEventHandler);
         }
-        this.defaultExpiration = 24; //hours
-        this.clear();
+        this.defaultExpiration = 24*7; //hours
     };
 
     Loader.prototype.localStorageEventHandler = function(e) {
