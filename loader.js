@@ -6,6 +6,9 @@
             this.build = build_id;
             this.clear(true);
             this.set('build_id', build_id);
+        } else if(!build_id){
+            this.disableTextInjection = true;
+            this.clear(true);
         } else {
             this.clear();
         }
@@ -13,11 +16,11 @@
 
     Loader.prototype.init = function(){
         this.head = document.head || document.getElementsByTagName('head')[0];
-        if (window.addEventListener) {
-            window.addEventListener("storage", this.localStorageEventHandler, false);
-        } else {
-            window.attachEvent("onstorage", this.localStorageEventHandler);
-        }
+        // if (window.addEventListener) {
+        //     window.addEventListener("storage", this.localStorageEventHandler, false);
+        // } else {
+        //     window.attachEvent("onstorage", this.localStorageEventHandler);
+        // }
         this.defaultExpiration = 24*7; //hours
     };
 
@@ -29,8 +32,6 @@
                 , _new: event.newValue
                 , url: event.url || event.uri
             };
-
-        console.log(data.url, ": ", data.name, " triggered a change. \n\n", "\told value: ", data._old, "\tnew value: ", data._new);
     };
 
     Loader.prototype.promise = (function() {
@@ -229,6 +230,7 @@
     Loader.prototype.injectStyleTagBySrc = function(url) {
         var style = document.createElement('link');
         style.href = url;
+        style.rel = "stylesheet";
         this.head.appendChild(style);
     };
 
@@ -297,8 +299,8 @@
             isJS = this.isJS(url),
             promise = new this.promise.Promise();
 
-        if(this.isCORS(url)){
-            if(url.indexOf('//') === -1){
+        if(this.isCORS(url) || this.disableTextInjection){
+            if(url.charAt(0) !== '/'){
                 url = '//'+url;
             }
             if(isCSS){
