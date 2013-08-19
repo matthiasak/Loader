@@ -427,4 +427,11 @@
     };
 
     win.Loader = Loader;
+
+    var tag = document.getElementById("loaderjs");
+    var app = tag && tag.getAttribute("data-app");
+    if(app){
+        var loader = new Loader(tag.getAttribute("build"));
+        loader.load({url:app});
+    }
 })(window, undefined);
