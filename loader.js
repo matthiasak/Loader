@@ -1,7 +1,8 @@
 ;(function(win, undef) {
-    function Loader(disableTextInjection){
+    function Loader(options){
         this.init();
-        this.disableTextInjection = disableTextInjection;
+        this.disableTextInjection = options.disableTextInjection;
+        this.CORS = options.CORS;
         this.build = this.get('build_id');
         if(this.disableTextInjection || !this.build || this.build < this.expiredTimestamp ){
             this.build = +new Date();
