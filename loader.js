@@ -1,37 +1,19 @@
 ;(function(win, undef) {
-    function Loader(build_id){
+    function Loader(disableTextInjection){
         this.init();
+        this.disableTextInjection = disableTextInjection;
         this.build = this.get('build_id');
-        if(build_id && build_id != this.build){
-            this.build = build_id;
-            this.clear(true);
-            this.set('build_id', build_id);
-        } else if(!build_id){
-            this.disableTextInjection = true;
-            this.clear(true);
-        } else {
-            this.clear();
+        if(this.disableTextInjection || !this.build || this.build < this.expiredTimestamp ){
+            this.build = +new Date();
+            this.clearAll();
+            this.set('build_id', this.build);
         }
     }
 
     Loader.prototype.init = function(){
         this.head = document.head || document.getElementsByTagName('head')[0];
-        // if (window.addEventListener) {
-        //     window.addEventListener("storage", this.localStorageEventHandler, false);
-        // } else {
-        //     window.attachEvent("onstorage", this.localStorageEventHandler);
-        // }
-        this.defaultExpiration = 24*7; //hours
-    };
-
-    Loader.prototype.localStorageEventHandler = function(e) {
-        var event = e || window.event
-            , data = {
-                name: event.key
-                , _old: event.oldValue
-                , _new: event.newValue
-                , url: event.url || event.uri
-            };
+        this.defaultExpiration = 1; //hours
+        this.expiredTimestamp = +new Date() - this.defaultExpiration * 60 * 60 * 1000;
     };
 
     Loader.prototype.promise = (function() {
@@ -61,8 +43,8 @@
             e = e || {};
             try {
                 var h;
-                if (window.XMLHttpRequest) h = new XMLHttpRequest;
-                else if (window.ActiveXObject) try {
+                if (win.XMLHttpRequest) h = new XMLHttpRequest;
+                else if (win.ActiveXObject) try {
                     h = new ActiveXObject("Msxml2.XMLHTTP")
                 } catch (m) {
                     h = new ActiveXObject("Microsoft.XMLHTTP")
@@ -145,8 +127,12 @@
             localStorage.setItem(key, JSON.stringify(data));
             return true;
         } catch (e) {
+            for(var i in localStorage){
+                console.log(localStorage[i])
+            }
             if (e.name === "QUOTA_EXCEEDED_ERR") {
                 console.log("Oh no! We ran out of room!");
+                this.clearAll();
             }
             return false;
         }
@@ -157,25 +143,15 @@
         return data;
     };
 
-    Loader.prototype.clear = function(shoudlClearAll) {
-        if (!localStorage) return this;
-
-        var item, key;
-        var now = +new Date();
-
-        for (key in localStorage) {
-            obj = this.get(key);
-
-            if (shoudlClearAll || obj && obj.expire <= now) {
-                this.remove(key);
-            }
-        }
-
-        return this;
+    Loader.prototype.clear = function(key) {
+        if (!localStorage) return;
+        this.remove(key);
     };
 
     Loader.prototype.clearAll = function(){
-        this.clear(true);
+        for (key in localStorage) {
+            this.clear(key);
+        }
     };
 
     Loader.prototype.remove = function(key) {
@@ -186,7 +162,6 @@
     Loader.prototype.addExpiration = function(obj) {
         var now = +new Date();
         obj.stamp = now;
-        obj.expire = now + ((obj.expire || this.defaultExpiration) * 60 * 60 * 1000);
     };
 
     Loader.prototype.isJS = function(url){
@@ -199,14 +174,9 @@
         return isCSS;
     };
 
-    Loader.prototype.isTMPL = function(url){
-        var isTMPL = url.indexOf('.tmpl') != -1;
-        return isTMPL;
-    };
-
     Loader.prototype.injectScriptTagByText = function(text) {
         var script = document.createElement('script');
-        script.async = true;
+        // script.async = true;
         script.text = text;
         this.head.appendChild(script);
     };
@@ -219,7 +189,7 @@
 
     Loader.prototype.injectScriptTagBySrc = function(url, promise) {
         var script = document.createElement('script');
-        script.async = true;
+        // script.async = true;
         script.src = url;
         script.onload = script.onreadystatechange = function() {
             promise.done();
@@ -280,16 +250,11 @@
             name = file.name,
             self = this;
 
-        if(this.fileShouldBeRefreshed(url)){
+        if(!this.get(url)){ //file doesnt exist
             return this.handleFileDownloadOrCORSAndInject(file);
         }
 
         return this.loadAndInjectFile(file, this.isCSS(url), this.isJS(url));
-    };
-
-    Loader.prototype.fileShouldBeRefreshed = function(url){
-        var file = this.get(url);
-        return !file || (file.expire > +new Date());
     };
 
     Loader.prototype.handleFileDownloadOrCORSAndInject = function(file){
@@ -309,9 +274,12 @@
             } else if(isJS){
                 this.injectScriptTagBySrc(url, promise);
             }
+
             return promise;
         } else {
-            return this.loadAndInjectFile(file, isCSS, isJS);
+            if(isCSS || isJS){
+                return this.loadAndInjectFile(file, isCSS, isJS);
+            }
         }
     };
 
@@ -384,7 +352,7 @@
                 hostname = url;
             }
 
-            if( hostname.indexOf(window.location.host)!==-1 ){
+            if( hostname.indexOf(win.location.host)!==-1 ){
                 isLocal = true;
             }
         }
@@ -431,7 +399,11 @@
     var tag = document.getElementById("loaderjs");
     var app = tag && tag.getAttribute("data-app");
     if(app){
-        var loader = new Loader(tag.getAttribute("build"));
+        var disableTextInjection = tag.getAttribute("disableTextInjection") !== null;
+        var loader = win.loader = new Loader({
+            disableTextInjection: tag.getAttribute("disableTextInjection")
+            , CORS: tag.getAttribute("CORS")
+        });
         loader.load({url:app});
     }
 })(window, undefined);
