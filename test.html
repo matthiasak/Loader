@@ -30,8 +30,7 @@
 			{url: "/vendor/font-awesome.min.css"}
 		];
 
-		var a = new Loader();
-		a.load.apply(a, files).then(function(){
+		loader.load.apply(a, files).then(function(){
 			console.log('yippee!')
 		});
 	</script>

@@ -1,5 +1,7 @@
 ;(function(win, undef) {
     function Loader(options){
+        options = options || {};
+
         this.init();
         this.disableTextInjection = options.disableTextInjection;
         this.CORS = options.CORS;
@@ -177,32 +179,36 @@
 
     Loader.prototype.injectScriptTagByText = function(text) {
         var script = document.createElement('script');
-        // script.async = true;
         script.text = text;
-        this.head.appendChild(script);
+        this.head.appendChild(this.createFragAndAddChild(script));
     };
 
     Loader.prototype.injectStyleTagByText = function(text) {
         var style = document.createElement('style');
         style.textContent = text;
-        this.head.appendChild(style);
+        this.head.appendChild(this.createFragAndAddChild(style));
     };
 
     Loader.prototype.injectScriptTagBySrc = function(url, promise) {
         var script = document.createElement('script');
-        // script.async = true;
         script.src = url;
         script.onload = script.onreadystatechange = function() {
             promise.done();
         };
-        this.head.appendChild(script);
+        this.head.appendChild(this.createFragAndAddChild(script));
     };
+
+    Loader.prototype.createFragAndAddChild = function(child){
+        var frag = document.createDocumentFragment();
+        frag.appendChild(child);
+        return frag;
+    }
 
     Loader.prototype.injectStyleTagBySrc = function(url) {
         var style = document.createElement('link');
         style.href = url;
         style.rel = "stylesheet";
-        this.head.appendChild(style);
+        this.head.appendChild(this.createFragAndAddChild(style));
     };
 
     Loader.prototype.replaceRelativeURLWithFullURL = function(segments, url_fragment, text) {
@@ -371,9 +377,7 @@
             file.text = self.replaceURLs(url, result);
             self.set(url, file);
             self.injectStyleTagByText(result);
-            setTimeout(function(){
-                p.done();
-            }, 0);
+            p.done();
         });
 
         return p;

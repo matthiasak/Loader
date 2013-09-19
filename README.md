@@ -11,7 +11,6 @@ It will load external scripts and stylesheets via script tag / src injection, an
 		{url: "/vendor/raphael-min.js"},
 		{url: "./styles.css"}
 	]
-	var loader = new Loader();
 	loader.load.apply(load, files).then(function(){
 		// do something after
 		console.log('all files loaded and cached!')
