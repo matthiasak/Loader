@@ -6,12 +6,15 @@
         this.disableTextInjection = options.disableTextInjection;
         this.CORS = options.CORS;
         this.build = this.get('build_id');
+
         if(this.disableTextInjection || !this.build || this.build < this.expiredTimestamp ){
             this.build = +new Date();
             this.clearAll();
             this.set('build_id', this.build);
         }
     }
+
+    Loader.prototype.loadedItems = {};
 
     Loader.prototype.init = function(){
         this.head = document.head || document.getElementsByTagName('head')[0];
@@ -238,15 +241,16 @@
         var args = [].slice.call(arguments),
             len = args.length,
             promises = [],
-            self = this,
-            p;
+            self = this;
 
-        for(var i=0; i<len; i++){
-            promises.push(
-                (function(file){
-                    return function(){ return self.loadFile(file); };
-                })(args[i])
-            );
+        for(var i=0, len=args.length; i<len; i++){
+            (function(file){
+                if(!self.loadedItems[file.url])
+                {
+                    self.loadedItems[file.url] = 1;
+                    promises.push(function(){ return self.loadFile(file); });
+                }
+            })(args[i])
         }
 
         return this.promise.join(promises);
