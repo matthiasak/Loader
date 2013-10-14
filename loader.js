@@ -180,16 +180,18 @@
         return isCSS;
     };
 
-    Loader.prototype.injectScriptTagByText = function(text) {
+    Loader.prototype.injectScriptTagByText = function(text, promise) {
         var script = document.createElement('script');
         script.text = text;
         this.head.appendChild(this.createFragAndAddChild(script));
+        promise && promise.done();
     };
 
-    Loader.prototype.injectStyleTagByText = function(text) {
+    Loader.prototype.injectStyleTagByText = function(text, promise) {
         var style = document.createElement('style');
         style.textContent = text;
         this.head.appendChild(this.createFragAndAddChild(style));
+        promise && promise.done();
     };
 
     Loader.prototype.injectScriptTagBySrc = function(url, promise) {
@@ -253,6 +255,14 @@
             })(args[i])
         }
 
+        if(!promises.length){
+            promises.push(function(){
+                var p = new self.promise.Promise();
+                p.done();
+                return p;
+            });
+        }
+
         return this.promise.join(promises);
     };
 
@@ -311,11 +321,10 @@
             }
         } else {
             var promise = new this.promise.Promise();
-            promise.done();
             if(isCSS){
-                this.injectStyleTagByText(_file.text);
+                this.injectStyleTagByText(_file.text, promise);
             } else if(isJS){
-                this.injectScriptTagByText(_file.text);
+                this.injectScriptTagByText(_file.text, promise);
             }
             return promise;
         }
