@@ -1,4 +1,6 @@
 ;(function(win, undef) {
+    !(console && console.log) && (window.console = {log:function(){}});
+
     function Loader(options){
         options = options || {};
 
@@ -23,6 +25,8 @@
     };
 
     Loader.prototype.promise = (function() {
+        var self = this;
+
         function k() {
             this._callbacks = []
         }
@@ -41,7 +45,7 @@
         function n(b, c, a, e) {
             function j() {
                 f.abort();
-                g.done(this.promise.ETIMEOUT, "")
+                g.done(self.ETIMEOUT, "")
             }
             var g = new k,
                 f, d;
@@ -183,15 +187,15 @@
     Loader.prototype.injectScriptTagByText = function(text, promise) {
         var script = document.createElement('script');
         script.text = text;
-        this.head.appendChild(this.createFragAndAddChild(script));
-        promise && promise.done();
+        this.head.appendChild(script);
+        promise && requestAnimationFrame(function(){ promise.done(); });
     };
 
     Loader.prototype.injectStyleTagByText = function(text, promise) {
         var style = document.createElement('style');
         style.textContent = text;
-        this.head.appendChild(this.createFragAndAddChild(style));
-        promise && promise.done();
+        this.head.appendChild(style);
+        promise && requestAnimationFrame(function(){ promise.done(); });
     };
 
     Loader.prototype.injectScriptTagBySrc = function(url, promise) {
@@ -200,20 +204,14 @@
         script.onload = script.onreadystatechange = function() {
             promise.done();
         };
-        this.head.appendChild(this.createFragAndAddChild(script));
+        this.head.appendChild(script);
     };
-
-    Loader.prototype.createFragAndAddChild = function(child){
-        var frag = document.createDocumentFragment();
-        frag.appendChild(child);
-        return frag;
-    }
 
     Loader.prototype.injectStyleTagBySrc = function(url) {
         var style = document.createElement('link');
         style.href = url;
         style.rel = "stylesheet";
-        this.head.appendChild(this.createFragAndAddChild(style));
+        this.head.appendChild(style);
     };
 
     Loader.prototype.replaceRelativeURLWithFullURL = function(segments, url_fragment, text) {
@@ -271,11 +269,7 @@
             name = file.name,
             self = this;
 
-        if(!this.get(url)){ //file doesnt exist
-            return this.handleFileDownloadOrCORSAndInject(file);
-        }
-
-        return this.loadAndInjectFile(file, this.isCSS(url), this.isJS(url));
+        return this.handleFileDownloadOrCORSAndInject(file);
     };
 
     Loader.prototype.handleFileDownloadOrCORSAndInject = function(file){
@@ -295,7 +289,6 @@
             } else if(isJS){
                 this.injectScriptTagBySrc(url, promise);
             }
-
             return promise;
         } else {
             if(isCSS || isJS){
@@ -380,33 +373,37 @@
         return !isLocal;
     };
 
-    Loader.prototype.loadAndInjectStyleTag = function(file){
+    Loader.prototype.loadAndInjectStyleTag = function(file, promise){
         var self = this,
             url = file.url,
-            p = new this.promise.Promise();
+            p = promise || new this.promise.Promise();
 
         this.promise.get(url).then(function(error, result){
-            self.addExpiration(file);
+            if(error){
+                self.loadAndInjectStyleTag(file, p);
+                return;
+            }
             file.text = self.replaceURLs(url, result);
             self.set(url, file);
-            self.injectStyleTagByText(result);
-            p.done();
+            self.injectStyleTagByText(result, p);
         });
 
         return p;
     };
 
-    Loader.prototype.loadAndInjectScriptTag = function(file){
+    Loader.prototype.loadAndInjectScriptTag = function(file, promise){
         var self = this,
             url = file.url,
-            p = new this.promise.Promise();
+            p = promise || new this.promise.Promise();
 
         this.promise.get(url).then(function(error, result){
-            self.addExpiration(file);
+            if(error){
+                self.loadAndInjectScriptTag(file, p);
+                return;
+            }
             file.text = result;
             self.set(url, file);
-            self.injectScriptTagByText(result);
-            p.done();
+            self.injectScriptTagByText(result, p);
         });
 
         return p;
@@ -415,9 +412,9 @@
     win.Loader = Loader;
 
     var tag = document.getElementById("loaderjs");
-    var app = tag && tag.getAttribute("data-app");
+    var app = tag && (tag.getAttribute("data-app") || tag['data-app']);
     if(app){
-        var disableTextInjection = tag.getAttribute("disableTextInjection") !== null;
+        var disableTextInjection = (tag.getAttribute("disableTextInjection") || tag['data-app']) !== null;
         var loader = win.loader = new Loader({
             disableTextInjection: tag.getAttribute("disableTextInjection")
             , CORS: tag.getAttribute("CORS")
