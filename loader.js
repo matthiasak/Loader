@@ -397,7 +397,7 @@
             p = promise || new this.promise.Promise();
 
         this.promise.get(url).then(function(error, result){
-            if(error){
+            if(error !== null){
                 self.loadAndInjectScriptTag(file, p);
                 return;
             }
