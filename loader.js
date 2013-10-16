@@ -185,10 +185,8 @@
     };
 
     Loader.prototype.injectScriptTagByText = function(text, promise) {
-        var script = document.createElement('script');
-        script.text = text;
-        this.head.appendChild(script);
-        promise && requestAnimationFrame(function(){ promise.done(); });
+        eval.call(window, text);
+        promise && promise.done();
     };
 
     Loader.prototype.injectStyleTagByText = function(text, promise) {
