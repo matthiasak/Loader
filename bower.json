@@ -1,0 +1,18 @@
+{
+  "name": "Loader",
+  "version": "1.0.1",
+  "homepage": "https://github.com/matthiasak/Loader",
+  "authors": [
+    "Matt Keas <matthiasak@gmail.com>"
+  ],
+  "description": "Dependency loader for scripts and css files, caches files in HTML5 Local Storage.",
+  "main": "loader.js",
+  "ignore": [
+    "vendor",
+    "**/.*",
+    "bower.json",
+    "server.js",
+    "styles.css",
+    "test.html"
+  ]
+}
