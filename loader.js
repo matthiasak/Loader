@@ -1,18 +1,14 @@
-;
-(function(win, undef) {
-    !(console && console.log) && (window.console = {
-        log: function() {}
-    });
+;(function(win, undef) {
+    !(console && console.log) && (window.console = {log:function(){}});
 
-    function Loader(options) {
+    function Loader(options){
         options = options || {};
 
         this.init();
         this.disableTextInjection = options.disableTextInjection;
         this.build = this.get('build_id');
-        this.prefix = "loader-";
 
-        if (this.disableTextInjection || !this.build || this.build < this.expiredTimestamp) {
+        if(this.disableTextInjection || !this.build || this.build < this.expiredTimestamp ){
             this.build = +new Date();
             this.clearAll();
             this.set('build_id', this.build);
@@ -23,7 +19,7 @@
 
     Loader.prototype.globalCache = {};
 
-    Loader.prototype.init = function() {
+    Loader.prototype.init = function(){
         this.head = document.head || document.getElementsByTagName('head')[0];
         this.defaultExpiration = 1; //hours
         this.expiredTimestamp = +new Date() - this.defaultExpiration * 60 * 60 * 1000;
@@ -137,17 +133,10 @@
         return this;
     })();
 
-    /**
-     * set in LocalStorage (or local in-memory cache)
-     * @param {[type]} key          [description]
-     * @param {[type]} data         [description]
-     * @param {[type]} ignorePrefix if truthy, this will remove the prefix from the key, making this data free from auto-purging
-     */
-    Loader.prototype.set = function(key, data, ignorePrefix) {
-        var prefix = ignorePrefix ? '' : this.prefix;
-        if (window.localStorage) {
+    Loader.prototype.set = function(key, data) {
+        if(window.localStorage){
             try {
-                localStorage.setItem(prefix + key, JSON.stringify(data));
+            localStorage.setItem(key, JSON.stringify(data));
                 return true;
             } catch (e) {
                 if (e.name === "QUOTA_EXCEEDED_ERR") {
@@ -158,39 +147,46 @@
                 return false;
             }
         } else {
-            this.globalCache[prefix + key] = data;
+            this.globalCache[key] = data;
         }
     };
 
-    Loader.prototype.get = function(key, ignorePrefix) {
-        var prefix = ignorePrefix ? '' : this.prefix;
-        if (window.localStorage) {
-            var data = JSON.parse(localStorage.getItem(prefix + key) || 'false');
+    Loader.prototype.get = function(key) {
+        if(window.localStorage){
+            var data = JSON.parse(localStorage.getItem(key) || 'false');
             return data;
         } else {
-            return this.globalCache[prefix + key];
+            return this.globalCache[key];
         }
     };
 
-    Loader.prototype.clear = function(key, ignorePrefix) {
-        var prefix = ignorePrefix ? '' : this.prefix;
-        if (window.localStorage) {
-            localStorage.removeItem(prefix + key);
+    Loader.prototype.clear = function(key) {
+        if(window.localStorage){
+            this.remove(key);
         } else {
-            this.globalCache[prefix + key] = null;
+            this.globalCache[key] = null;
         }
     };
 
-    Loader.prototype.clearAll = function() {
-        if (window.localStorage) {
+    Loader.prototype.clearAll = function(){
+        if(window.localStorage){
             for (key in localStorage) {
-                if (key.indexOf(this.prefix) === 0) this.clear(key.replace(this.prefix, ""));
+                this.clear(key);
             }
         } else {
             for (key in this.globalCache) {
-                if (key.indexOf(this.prefix) === 0) this.globalCache[key] = null;
+                this.globalCache[key] = null;
             }
         }
+    };
+
+    Loader.prototype.remove = function(key) {
+        if(window.localStorage){
+            localStorage.removeItem(key);
+        } else {
+            this.globalCache[key] = null;
+        }
+        return this;
     };
 
     Loader.prototype.addExpiration = function(obj) {
@@ -198,7 +194,7 @@
         obj.stamp = now;
     };
 
-    Loader.prototype.isJS = function(url) {
+    Loader.prototype.isJS = function(url){
         var isJS = url.indexOf('.js') != -1;
         return isJS;
     };
@@ -265,19 +261,18 @@
             promises = [],
             self = this;
 
-        for (var i = 0, len = args.length; i < len; i++) {
-            (function(file) {
-                if (!self.loadedItems[file.url]) {
+        for(var i=0, len=args.length; i<len; i++){
+            (function(file){
+                if(!self.loadedItems[file.url])
+                {
                     self.loadedItems[file.url] = 1;
-                    promises.push(function() {
-                        return self.loadFile(file);
-                    });
+                    promises.push(function(){ return self.loadFile(file); });
                 }
             })(args[i])
         }
 
-        if (!promises.length) {
-            promises.push(function() {
+        if(!promises.length){
+            promises.push(function(){
                 var p = new self.promise.Promise();
                 p.done();
                 return p;
@@ -287,7 +282,7 @@
         return this.promise.join(promises);
     };
 
-    Loader.prototype.loadFile = function(file) {
+    Loader.prototype.loadFile = function(file){
         var url = file.url,
             name = file.name,
             self = this;
@@ -295,69 +290,69 @@
         return this.handleFileDownloadAndInject(file);
     };
 
-    Loader.prototype.handleFileDownloadAndInject = function(file) {
+    Loader.prototype.handleFileDownloadAndInject = function(file){
         var url = file.url,
             name = file.name,
             isCSS = this.isCSS(url),
             isJS = this.isJS(url),
             promise = new this.promise.Promise();
 
-        if (this.isDifferentDomain(url) || this.disableTextInjection) {
-            if (url.charAt(0) !== '/') {
-                url = '//' + url;
+        if(this.isDifferentDomain(url) || this.disableTextInjection){
+            if(url.charAt(0) !== '/'){
+                url = '//'+url;
             }
-            if (isCSS) {
+            if(isCSS){
                 this.injectStyleTagBySrc(url);
                 promise.done();
-            } else if (isJS) {
+            } else if(isJS){
                 this.injectScriptTagBySrc(url, promise);
             }
             return promise;
         } else {
-            if (isCSS || isJS) {
+            if(isCSS || isJS){
                 return this.loadAndInjectFile(file, isCSS, isJS);
             }
         }
     };
 
-    Loader.prototype.loadAndInjectFile = function(file, isCSS, isJS) {
+    Loader.prototype.loadAndInjectFile = function(file, isCSS, isJS){
         var url = file.url,
             name = file.name,
             hasProtocol = url.indexOf('//'),
             _file = this.get(url);
 
-        if (!_file) {
-            if (hasProtocol === -1) {
-                url = '//' + url;
+        if(!_file){
+            if(hasProtocol === -1){
+                url = '//'+url;
             }
-            if (isCSS) {
+            if(isCSS){
                 return this.loadAndInjectStyleTag(file);
-            } else if (isJS) {
+            } else if (isJS){
                 return this.loadAndInjectScriptTag(file);
             }
         } else {
             var promise = new this.promise.Promise();
-            if (isCSS) {
+            if(isCSS){
                 this.injectStyleTagByText(_file.text, promise);
-            } else if (isJS) {
+            } else if(isJS){
                 this.injectScriptTagByText(_file.text, promise);
             }
             return promise;
         }
     };
 
-    Loader.prototype.isDifferentDomain = function(url) {
+    Loader.prototype.isDifferentDomain = function(url){
         var hasProtocol = url.indexOf('//'),
             protocol = null;
-        if (hasProtocol !== -1) {
-            prototype = url.substr(0, hasProtocol + 2);
-            url = url.substr(hasProtocol + 2);
+        if(hasProtocol!==-1){
+            prototype = url.substr(0, hasProtocol+2);
+            url = url.substr(hasProtocol+2);
         }
 
         var isLocal;
 
         var hasRelativeDotSlash = url.indexOf('./');
-        if (hasRelativeDotSlash === 0) {
+        if(hasRelativeDotSlash === 0){
             hasRelativeDotSlash = true;
             isLocal = true;
             url = url.substr(2);
@@ -366,7 +361,7 @@
         }
 
         var hasRelativeSingleSlash = url.indexOf('/');
-        if (hasRelativeSingleSlash === 0) {
+        if(hasRelativeSingleSlash === 0){
             isLocal = true;
             hasRelativeSingleSlash = true;
             url = url.substr(1);
@@ -374,21 +369,21 @@
             hasRelativeSingleSlash = false;
         }
 
-        if (!hasRelativeSingleSlash && !hasRelativeDotSlash) {
+        if(!hasRelativeSingleSlash && !hasRelativeDotSlash){
             var hasAnotherSlash = url.indexOf('/'),
                 hostname,
                 pathname;
-            if (hasAnotherSlash !== -1) {
-                hostname = url.substr(0, hasAnotherSlash);
+            if( hasAnotherSlash !== -1 ){
+                hostname = url.substr(0,hasAnotherSlash);
                 pathname = url.substr(hasAnotherSlash);
-            } else if (url.indexOf('js') !== -1 || url.indexOf('css') !== -1 || url.indexOf('tmpl') !== -1) {
+            } else if( url.indexOf('js') !== -1 || url.indexOf('css') !== -1 || url.indexOf('tmpl') !== -1 ) {
                 isLocal = true;
                 pathname = url;
             } else {
                 hostname = url;
             }
 
-            if (hostname.indexOf(win.location.host) !== -1) {
+            if( hostname.indexOf(win.location.host)!==-1 ){
                 isLocal = true;
             }
         }
@@ -396,13 +391,13 @@
         return !isLocal;
     };
 
-    Loader.prototype.loadAndInjectStyleTag = function(file, promise) {
+    Loader.prototype.loadAndInjectStyleTag = function(file, promise){
         var self = this,
             url = file.url,
             p = promise || new this.promise.Promise();
 
-        this.promise.get(url).then(function(error, result) {
-            if (error) {
+        this.promise.get(url).then(function(error, result){
+            if(error){
                 self.loadAndInjectStyleTag(file, p);
                 return;
             }
@@ -414,13 +409,13 @@
         return p;
     };
 
-    Loader.prototype.loadAndInjectScriptTag = function(file, promise) {
+    Loader.prototype.loadAndInjectScriptTag = function(file, promise){
         var self = this,
             url = file.url,
             p = promise || new this.promise.Promise();
 
-        this.promise.get(url).then(function(error, result) {
-            if (error !== null) {
+        this.promise.get(url).then(function(error, result){
+            if(error !== null){
                 self.loadAndInjectScriptTag(file, p);
                 return;
             }
@@ -436,13 +431,11 @@
 
     var tag = document.getElementById("loaderjs");
     var app = tag && (tag.getAttribute("data-app") || tag['data-app']);
-    var disableTextInjection = tag && !! (tag.getAttribute("disableTextInjection") || tag['disableTextInjection']);
+    var disableTextInjection = tag && !!(tag.getAttribute("disableTextInjection") || tag['disableTextInjection']);
     var loader = win.loader = new Loader({
         disableTextInjection: disableTextInjection
     });
-    if (app) {
-        loader.load({
-            url: app
-        });
+    if(app){
+        loader.load({url:app});
     }
 })(window, undefined);
