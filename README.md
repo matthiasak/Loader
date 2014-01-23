@@ -92,3 +92,40 @@ Loader.promise.Promise is a similar implementation to [https://github.com/stackp
 	loader.set('key', value);
 	loader.get('key') //--> value;
 ```
+
+### Want to clean out your HTML Local Storage while testing?
+
+Run this in your console:
+
+```
+	loader.clearAll();
+```
+
+### Use Loader like Require.js, so that it bootstraps your JS application
+
+Point to Loader and configure it in your HTML, like so:
+
+```
+	<!DOCTYPE html>
+	<html>
+		<head>
+			...
+		</head>
+		<body>
+			...
+			<script type="text/javascript">function downloadJSAtOnload() {
+				var element = document.createElement("script");
+				element.src = "/js/Utilities/loader.js";
+				element.id = "loaderjs";
+				// element.disableTextInjection = true; //<<-- uncomment this to turn off Local Storage, useful when working under a development or testing environment
+				element["data-app"] = "/js/app.js"; // the URL of your main JavaScript app. Loader will bootstrap and execute this file immediately from Local Storage cache or from the network
+				document.body.appendChild(element);
+			}
+			if (window.addEventListener)
+				window.addEventListener("load", downloadJSAtOnload, false);
+			else if (window.attachEvent)
+				window.attachEvent("onload", downloadJSAtOnload);
+			else window.onload = downloadJSAtOnload;</script>
+		</body>
+	</html>
+```
