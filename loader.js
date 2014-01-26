@@ -219,9 +219,15 @@
     Loader.prototype.injectScriptTagBySrc = function(url, promise) {
         var script = document.createElement('script');
         script.src = url;
-        script.onload = script.onreadystatechange = function() {
+        var cb = function() {
             promise.done();
         };
+        if(script.addEventListener) {
+            script.addEventListener("load", cb, false);
+        }
+        else if(script.readyState) {
+            script.onreadystatechange = cb;
+        }
         this.head.appendChild(script);
     };
 
