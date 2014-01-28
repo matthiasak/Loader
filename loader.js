@@ -16,7 +16,6 @@
     }
 
     Loader.prototype.loadedItems = {};
-
     Loader.prototype.globalCache = {};
 
     Loader.prototype.init = function(){
@@ -160,6 +159,14 @@
         }
     };
 
+    Loader.prototype.has = function(key) {
+        if(window.localStorage){
+            return (key in localStorage);
+        } else {
+            return (key in globalCache);
+        }
+    };
+
     Loader.prototype.clear = function(key) {
         if(window.localStorage){
             this.remove(key);
@@ -206,21 +213,27 @@
 
     Loader.prototype.injectScriptTagByText = function(text, promise) {
         eval.call(window, text);
-        promise && promise.done();
+        setTimeout(function(){
+            promise && promise.done();
+        }, 0);
     };
 
     Loader.prototype.injectStyleTagByText = function(text, promise) {
         var style = document.createElement('style');
         style.textContent = text;
         this.head.appendChild(style);
-        promise && promise.done();
+        setTimeout(function(){
+            promise && promise.done();
+        }, 0);
     };
 
     Loader.prototype.injectScriptTagBySrc = function(url, promise) {
         var script = document.createElement('script');
         script.src = url;
         var cb = function() {
-            promise.done();
+            setTimeout(function(){
+                promise && promise.done();
+            }, 0);
         };
         if(script.addEventListener) {
             script.addEventListener("load", cb, false);
@@ -231,11 +244,14 @@
         this.head.appendChild(script);
     };
 
-    Loader.prototype.injectStyleTagBySrc = function(url) {
+    Loader.prototype.injectStyleTagBySrc = function(url, promise) {
         var style = document.createElement('link');
         style.href = url;
         style.rel = "stylesheet";
         this.head.appendChild(style);
+        setTimeout(function(){
+            promise && promise.done();
+        }, 0);
     };
 
     Loader.prototype.replaceRelativeURLWithFullURL = function(segments, url_fragment, text) {
@@ -261,89 +277,87 @@
         return text;
     };
 
+    function convertToArray(iterable) {
+        if (!iterable) return [];
+        var length = iterable.length || 0,
+            results = new Array(length);
+        while (length--) results[length] = iterable[length];
+        return results;
+    }
+
+    function forEach(array, cb){
+        for(var i = 0, len = array.length; i < len; i++){
+            cb(array[i], i);
+        }
+    }
+
     Loader.prototype.load = function( /* files to load */ ) {
         var args = [].slice.call(arguments),
             len = args.length,
             promises = [],
             self = this;
 
-        for(var i=0, len=args.length; i<len; i++){
-            (function(file){
-                if(!self.loadedItems[file.url])
-                {
-                    self.loadedItems[file.url] = 1;
-                    promises.push(function(){ return self.loadFile(file); });
-                }
-            })(args[i])
-        }
+        forEach(convertToArray(args), function(file){
+            if(!self.loadedItems[file.url]) {
+                self.loadedItems[file.url] = 1;
+                var p = self.loadFile(file);
+                promises.push(function(){
+                    var _p = new self.promise.Promise();
+                    self.injectFile(file, _p);
+                    return _p;
+                });
+            }
+        });
 
-        if(!promises.length){
-            promises.push(function(){
-                var p = new self.promise.Promise();
-                p.done();
-                return p;
-            });
-        }
-
-        return this.promise.join(promises);
+        return this.promise.chain(promises);
     };
 
     Loader.prototype.loadFile = function(file){
         var url = file.url,
-            name = file.name,
+            promise = new this.promise.Promise(),
             self = this;
 
-        return this.handleFileDownloadAndInject(file);
+        if(!this.has(url) && !this.isDifferentDomain(url)) {
+            if(url.charAt(0) !== '/'){
+                url = '//'+url;
+            }
+            this.promise.get(url).then(function(error, result){
+                if(!error) {
+                    file.text = self.replaceURLs(url, result);
+                    self.set(url, file);
+                }
+                promise.done();
+            });
+        } else {
+            promise.done();
+        }
+        return promise;
     };
 
-    Loader.prototype.handleFileDownloadAndInject = function(file){
+    Loader.prototype.injectFile = function(file, promise){
         var url = file.url,
-            name = file.name,
             isCSS = this.isCSS(url),
-            isJS = this.isJS(url),
-            promise = new this.promise.Promise();
+            isJS = this.isJS(url);
 
-        if(this.isDifferentDomain(url) || this.disableTextInjection){
+        if(!this.has(url)){
             if(url.charAt(0) !== '/'){
                 url = '//'+url;
             }
             if(isCSS){
-                this.injectStyleTagBySrc(url);
-                promise.done();
-            } else if(isJS){
-                this.injectScriptTagBySrc(url, promise);
-            }
-            return promise;
-        } else {
-            if(isCSS || isJS){
-                return this.loadAndInjectFile(file, isCSS, isJS);
-            }
-        }
-    };
-
-    Loader.prototype.loadAndInjectFile = function(file, isCSS, isJS){
-        var url = file.url,
-            name = file.name,
-            hasProtocol = url.indexOf('//'),
-            _file = this.get(url);
-
-        if(!_file){
-            if(hasProtocol === -1){
-                url = '//'+url;
-            }
-            if(isCSS){
-                return this.loadAndInjectStyleTag(file);
+                this.injectStyleTagBySrc(url, promise);
             } else if (isJS){
-                return this.loadAndInjectScriptTag(file);
+                this.injectScriptTagBySrc(url, promise);
+            } else {
+                promise.done();
             }
         } else {
-            var promise = new this.promise.Promise();
             if(isCSS){
-                this.injectStyleTagByText(_file.text, promise);
+                this.injectStyleTagByText(this.get(url).text, promise);
             } else if(isJS){
-                this.injectScriptTagByText(_file.text, promise);
+                this.injectScriptTagByText(this.get(url).text, promise);
+            } else {
+                promise.done();
             }
-            return promise;
         }
     };
 
@@ -395,42 +409,6 @@
         }
 
         return !isLocal;
-    };
-
-    Loader.prototype.loadAndInjectStyleTag = function(file, promise){
-        var self = this,
-            url = file.url,
-            p = promise || new this.promise.Promise();
-
-        this.promise.get(url).then(function(error, result){
-            if(error){
-                self.loadAndInjectStyleTag(file, p);
-                return;
-            }
-            file.text = self.replaceURLs(url, result);
-            self.set(url, file);
-            self.injectStyleTagByText(result, p);
-        });
-
-        return p;
-    };
-
-    Loader.prototype.loadAndInjectScriptTag = function(file, promise){
-        var self = this,
-            url = file.url,
-            p = promise || new this.promise.Promise();
-
-        this.promise.get(url).then(function(error, result){
-            if(error !== null){
-                self.loadAndInjectScriptTag(file, p);
-                return;
-            }
-            file.text = result;
-            self.set(url, file);
-            self.injectScriptTagByText(result, p);
-        });
-
-        return p;
     };
 
     win.Loader = Loader;
