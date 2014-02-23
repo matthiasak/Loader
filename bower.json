@@ -5,12 +5,10 @@
   "authors": [
     "Matt Keas <matthiasak@gmail.com>"
   ],
-  "description": "Dependency loader for scripts and css files, caches files in HTML5 Local Storage.",
+  "description": "Dependency loader for scripts and css files, caches files in HTML5 Local Storage; loads them asynchronously and executes serially.",
   "main": "loader.js",
   "ignore": [
     "vendor",
-    "**/.*",
-    "bower.json",
     "server.js",
     "styles.css",
     "test.html"
