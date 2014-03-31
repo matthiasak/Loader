@@ -1,4 +1,4 @@
-## The Loader
+### The Loader
 
 This Loader / dependency utility is a very simple utility class that acts as a resource loader and manager for javascript and CSS (templating to come)
 It will load external scripts and stylesheets via script tag / src injection, and will detect if a URL passes the same-origin policy (protocol, domain, port) when dynamically loading scripts so that it know when to:
