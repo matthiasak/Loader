@@ -45,6 +45,9 @@ It will load external scripts and stylesheets via script tag / src injection, an
 		});
 	}
 
+	// UNCOMMENT to turn on loading cached files from Local Storage (performance boost √)
+    // loader.textInjection = true;
+
 	// load everything in parallel, execute js serially
 	// returns a promise when the next thing is ready
 	loader.load.apply(loader, styles.concat(js)).then(function() {
@@ -117,7 +120,7 @@ Point to Loader and configure it in your HTML, like so:
 				var element = document.createElement("script");
 				element.src = "/js/Utilities/loader.js";
 				element.id = "loaderjs";
-				// element.disableTextInjection = true; //<<-- uncomment this to turn off Local Storage, useful when working under a development or testing environment
+				// element.textInjection = true; //<<-- uncomment this to turn on Local Storage caching (acts normally in older browsers), useful when working under a development or testing environment
 				element["data-app"] = "/js/app.js"; // the URL of your main JavaScript app. Loader will bootstrap and execute this file immediately from Local Storage cache or from the network
 				document.body.appendChild(element);
 			}

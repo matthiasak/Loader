@@ -1,141 +1,173 @@
-;(function(win, undef) {
-    !(console && console.log) && (window.console = {log:function(){}});
+;
+(function(win, undef) {
+    !(console && console.log) && (window.console = {
+        log: function() {}
+    });
 
-    function Loader(options){
+    function Loader(options) {
         options = options || {};
-
-        this.init();
-        this.disableTextInjection = options.disableTextInjection;
-        this.build = this.get('build_id');
-
-        if(this.disableTextInjection || !this.build || this.build < this.expiredTimestamp ){
-            this.build = +new Date();
-            this.clearAll();
-            this.set('build_id', this.build);
-        }
+        this.init(options);
     }
 
     Loader.prototype.loadedItems = {};
     Loader.prototype.globalCache = {};
 
-    Loader.prototype.init = function(){
+    Loader.prototype.init = function(options) {
+        this.textInjection = options.textInjection;
+        this.build = this.get('build_id');
+
+        if (!this.textInjection || !this.build || this.build < this.expiredTimestamp) {
+            this.build = +new Date();
+            this.set('build_id', this.build);
+        }
+
         this.head = document.head || document.getElementsByTagName('head')[0];
         this.defaultExpiration = 1; //hours
         this.expiredTimestamp = +new Date() - this.defaultExpiration * 60 * 60 * 1000;
     };
 
     Loader.prototype.promise = (function() {
-        var self = this;
+        var a = this;
 
-        function k() {
-            this._callbacks = []
+        function b() {
+            this._callbacks = [];
         }
-
-        function l(b, c, a) {
-            var e = new k;
-            0 === b.length ? e.done(c, a) : b[0](c, a).then(function(a, c) {
-                b.splice(0, 1);
-                l(b, a, c).then(function(a, b) {
-                    e.done(a, b)
-                })
-            });
-            return e
-        }
-
-        function n(b, c, a, e) {
-            function j() {
-                f.abort();
-                g.done(self.ETIMEOUT, "")
-            }
-            var g = new k,
-                f, d;
-            a = a || {};
-            e = e || {};
-            try {
-                var h;
-                if (win.XMLHttpRequest) h = new XMLHttpRequest;
-                else if (win.ActiveXObject) try {
-                    h = new ActiveXObject("Msxml2.XMLHTTP")
-                } catch (m) {
-                    h = new ActiveXObject("Microsoft.XMLHTTP")
-                }
-                f = h
-            } catch (p) {
-                return g.done(-1, ""), g
-            }
-            h = "";
-            if ("string" === typeof a) h = a;
+        b.prototype.then = function(a, c) {
+            var d;
+            if (this._isdone) d = a.apply(c, this.result);
             else {
-                var l = encodeURIComponent;
-                for (d in a) a.hasOwnProperty(d) && (h += "&" + l(d) + "=" + l(a[d]))
+                d = new b();
+                this._callbacks.push(function() {
+                    var b = a.apply(c, arguments);
+                    if (b && typeof b.then === 'function') b.then(d.done, d);
+                });
             }
-            d = h;
-            "GET" === b && d && (c += "?" + d, d = null);
-            f.open(b, c);
-            f.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            for (var q in e) e.hasOwnProperty(q) && f.setRequestHeader(q, e[q]);
-            var r = this.ajaxTimeout;
-            if (r) var n = setTimeout(j, r);
-            f.onreadystatechange = function() {
-                r && clearTimeout(n);
-                4 === f.readyState && (200 === f.status ? g.done(null, f.responseText) : g.done(f.status, f.responseText))
-            };
-            f.send(d);
-            return g
+            return d;
+        };
+        b.prototype.done = function() {
+            this.result = arguments;
+            this._isdone = true;
+            for (var a = 0; a < this._callbacks.length; a++) this._callbacks[a].apply(null, arguments);
+            this._callbacks = [];
+        };
+
+        function c(a) {
+            var c = new b();
+            var d = [];
+            if (!a || !a.length) {
+                c.done(d);
+                return c;
+            }
+            var e = 0;
+            var f = a.length;
+
+            function g(a) {
+                return function() {
+                    e += 1;
+                    d[a] = Array.prototype.slice.call(arguments);
+                    if (e === f) c.done(d);
+                };
+            }
+            for (var h = 0; h < f; h++) a[h].then(g(h));
+            return c;
         }
 
-        function j(b) {
-            return function(c, a, e) {
-                return n(b, c, a, e)
-            }
+        function d(a, c) {
+            var e = new b();
+            if (a.length === 0) e.done.apply(e, c);
+            else a[0].apply(null, c).then(function() {
+                a.splice(0, 1);
+                d(a, arguments).then(function() {
+                    e.done.apply(e, arguments);
+                });
+            });
+            return e;
         }
-        k.prototype.then = function(b, c) {
+
+        function e(a) {
+            var b = "";
+            if (typeof a === "string") b = a;
+            else {
+                var c = encodeURIComponent;
+                for (var d in a)
+                    if (a.hasOwnProperty(d)) b += '&' + c(d) + '=' + c(a[d]);
+            }
+            return b;
+        }
+
+        function f() {
             var a;
-            a = function() {
-                return b.apply(c, arguments)
-            };
-            this._isdone ? a(this.error, this.result) : this._callbacks.push(a)
-        };
-        k.prototype.done = function(b, c) {
-            this._isdone = !0;
-            this.error = b;
-            this.result = c;
-            for (var a = 0; a < this._callbacks.length; a++) this._callbacks[a](b, c);
-            this._callbacks = []
-        };
-        var p = {
-            get: j("GET"),
-            post: j("POST"),
-            put: j("PUT"),
-            del: j("DELETE"),
-            Promise: k,
-            join: function(b) {
-                function c(b) {
-                    return function(c, d) {
-                        e += 1;
-                        g[b] = c;
-                        f[b] = d;
-                        e === a && j.done(g, f)
-                    }
+            if (window.XMLHttpRequest) a = new XMLHttpRequest();
+            else if (window.ActiveXObject) try {
+                a = new ActiveXObject("Msxml2.XMLHTTP");
+            } catch (b) {
+                a = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            return a;
+        }
+
+        function g(a, c, d, g) {
+            var h = new b();
+            var j, k;
+            d = d || {};
+            g = g || {};
+            try {
+                j = f();
+            } catch (l) {
+                h.done(i.ENOXHR, "");
+                return h;
+            }
+            k = e(d);
+            if (a === 'GET' && k) {
+                c += '?' + k;
+                k = null;
+            }
+            j.open(a, c);
+            j.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            for (var m in g)
+                if (g.hasOwnProperty(m)) j.setRequestHeader(m, g[m]);
+            function n() {
+                j.abort();
+                h.done(i.ETIMEOUT, "", j);
+            }
+            var o = i.ajaxTimeout;
+            if (o) var p = setTimeout(n, o);
+            j.onreadystatechange = function() {
+                if (o) clearTimeout(p);
+                if (j.readyState === 4) {
+                    var a = (!j.status || (j.status < 200 || j.status >= 300) && j.status !== 304);
+                    h.done(a, j.responseText, j);
                 }
-                for (var a = b.length, e = 0, j = new k, g = [], f = [], d = 0; d < a; d++)
-                    b[d]().then(c(d));
-                return j;
-            },
-            chain: l,
-            ajax: n,
+            };
+            j.send(k);
+            return h;
+        }
+
+        function h(a) {
+            return function(b, c, d) {
+                return g(a, b, c, d);
+            };
+        }
+        var i = {
+            Promise: b,
+            join: c,
+            chain: d,
+            ajax: g,
+            get: h('GET'),
+            post: h('POST'),
+            put: h('PUT'),
+            del: h('DELETE'),
             ENOXHR: 1,
             ETIMEOUT: 2,
-            ajaxTimeout: 5000
-        }, m;
-        for (m in p) p.hasOwnProperty(m) && (this[m] = p[m]);
-        return this;
+            ajaxTimeout: 0
+        };
+        return i;
     })();
 
     Loader.prototype.set = function(key, data) {
-        if(window.localStorage){
+        if (window.localStorage) {
             try {
-            localStorage.setItem(key, JSON.stringify(data));
+                localStorage.setItem(key, JSON.stringify(data));
                 return true;
             } catch (e) {
                 if (e.name === "QUOTA_EXCEEDED_ERR") {
@@ -151,7 +183,7 @@
     };
 
     Loader.prototype.get = function(key) {
-        if(window.localStorage){
+        if (window.localStorage) {
             var data = JSON.parse(localStorage.getItem(key) || 'false');
             return data;
         } else {
@@ -160,7 +192,7 @@
     };
 
     Loader.prototype.has = function(key) {
-        if(window.localStorage){
+        if (window.localStorage) {
             return (key in localStorage);
         } else {
             return (key in globalCache);
@@ -168,15 +200,15 @@
     };
 
     Loader.prototype.clear = function(key) {
-        if(window.localStorage){
+        if (window.localStorage) {
             this.remove(key);
         } else {
             this.globalCache[key] = null;
         }
     };
 
-    Loader.prototype.clearAll = function(){
-        if(window.localStorage){
+    Loader.prototype.clearAll = function() {
+        if (window.localStorage) {
             for (key in localStorage) {
                 this.clear(key);
             }
@@ -188,7 +220,7 @@
     };
 
     Loader.prototype.remove = function(key) {
-        if(window.localStorage){
+        if (window.localStorage) {
             localStorage.removeItem(key);
         } else {
             this.globalCache[key] = null;
@@ -201,7 +233,7 @@
         obj.stamp = now;
     };
 
-    Loader.prototype.isJS = function(url){
+    Loader.prototype.isJS = function(url) {
         var isJS = url.indexOf('.js') != -1;
         return isJS;
     };
@@ -213,7 +245,7 @@
 
     Loader.prototype.injectScriptTagByText = function(text, promise) {
         eval.call(window, text);
-        setTimeout(function(){
+        setTimeout(function() {
             promise && promise.done();
         }, 0);
     };
@@ -222,7 +254,7 @@
         var style = document.createElement('style');
         style.textContent = text;
         this.head.appendChild(style);
-        setTimeout(function(){
+        setTimeout(function() {
             promise && promise.done();
         }, 0);
     };
@@ -231,14 +263,13 @@
         var script = document.createElement('script');
         script.src = url;
         var cb = function() {
-            setTimeout(function(){
+            setTimeout(function() {
                 promise && promise.done();
             }, 0);
         };
-        if(script.addEventListener) {
+        if (script.addEventListener) {
             script.addEventListener("load", cb, false);
-        }
-        else if(script.readyState) {
+        } else if (script.readyState) {
             script.onreadystatechange = cb;
         }
         this.head.appendChild(script);
@@ -249,7 +280,7 @@
         style.href = url;
         style.rel = "stylesheet";
         this.head.appendChild(style);
-        setTimeout(function(){
+        setTimeout(function() {
             promise && promise.done();
         }, 0);
     };
@@ -285,8 +316,8 @@
         return results;
     }
 
-    function forEach(array, cb){
-        for(var i = 0, len = array.length; i < len; i++){
+    function forEach(array, cb) {
+        for (var i = 0, len = array.length; i < len; i++) {
             cb(array[i], i);
         }
     }
@@ -297,11 +328,14 @@
             promises = [],
             self = this;
 
-        forEach(convertToArray(args), function(file){
-            if(!self.loadedItems[file.url]) {
+        forEach(convertToArray(args), function(file) {
+            if (!self.loadedItems[file.url]) {
                 self.loadedItems[file.url] = 1;
                 var p = self.loadFile(file);
-                promises.push(function(){
+                if(!self.textInjection) {
+                    self.clear(file.url);
+                }
+                promises.push(function() {
                     var _p = new self.promise.Promise();
                     self.injectFile(file, _p);
                     return _p;
@@ -312,17 +346,18 @@
         return this.promise.chain(promises);
     };
 
-    Loader.prototype.loadFile = function(file){
+    Loader.prototype.loadFile = function(file) {
         var url = file.url,
             promise = new this.promise.Promise(),
             self = this;
 
-        if(!this.has(url) && !this.isDifferentDomain(url)) {
-            if(url.charAt(0) !== '/'){
-                url = '//'+url;
+        if (this.textInjection && !this.has(url) && !this.isDifferentDomain(url)) {
+            var charAt0 = url.charAt(0);
+            if (charAt0 !== '/' && charAt0 !== '.') {
+                url = '//' + url;
             }
-            this.promise.get(url).then(function(error, result){
-                if(!error) {
+            this.promise.get(url).then(function(error, result) {
+                if (!error) {
                     file.text = self.replaceURLs(url, result);
                     self.set(url, file);
                 }
@@ -334,45 +369,47 @@
         return promise;
     };
 
-    Loader.prototype.injectFile = function(file, promise){
+    Loader.prototype.injectFile = function(file, promise) {
         var url = file.url,
             isCSS = this.isCSS(url),
             isJS = this.isJS(url);
 
-        if(!this.has(url)){
-            if(url.charAt(0) !== '/'){
-                url = '//'+url;
+        if (!this.textInjection || !this.has(url)) {
+            var charAt0 = url.charAt(0);
+            if (charAt0 !== '/' && charAt0 !== '.') {
+                url = '//' + url;
             }
-            if(isCSS){
+            if (isCSS) {
                 this.injectStyleTagBySrc(url, promise);
-            } else if (isJS){
+            } else if (isJS) {
                 this.injectScriptTagBySrc(url, promise);
             } else {
                 promise.done();
             }
         } else {
-            if(isCSS){
+            if (isCSS) {
                 this.injectStyleTagByText(this.get(url).text, promise);
-            } else if(isJS){
+            } else if (isJS) {
                 this.injectScriptTagByText(this.get(url).text, promise);
             } else {
                 promise.done();
+                // promise.done(null, this.get(url).text);
             }
         }
     };
 
-    Loader.prototype.isDifferentDomain = function(url){
+    Loader.prototype.isDifferentDomain = function(url) {
         var hasProtocol = url.indexOf('//'),
             protocol = null;
-        if(hasProtocol!==-1){
-            prototype = url.substr(0, hasProtocol+2);
-            url = url.substr(hasProtocol+2);
+        if (hasProtocol !== -1) {
+            prototype = url.substr(0, hasProtocol + 2);
+            url = url.substr(hasProtocol + 2);
         }
 
         var isLocal;
 
         var hasRelativeDotSlash = url.indexOf('./');
-        if(hasRelativeDotSlash === 0){
+        if (hasRelativeDotSlash === 0) {
             hasRelativeDotSlash = true;
             isLocal = true;
             url = url.substr(2);
@@ -381,7 +418,7 @@
         }
 
         var hasRelativeSingleSlash = url.indexOf('/');
-        if(hasRelativeSingleSlash === 0){
+        if (hasRelativeSingleSlash === 0) {
             isLocal = true;
             hasRelativeSingleSlash = true;
             url = url.substr(1);
@@ -389,21 +426,21 @@
             hasRelativeSingleSlash = false;
         }
 
-        if(!hasRelativeSingleSlash && !hasRelativeDotSlash){
+        if (!hasRelativeSingleSlash && !hasRelativeDotSlash) {
             var hasAnotherSlash = url.indexOf('/'),
                 hostname,
                 pathname;
-            if( hasAnotherSlash !== -1 ){
-                hostname = url.substr(0,hasAnotherSlash);
+            if (hasAnotherSlash !== -1) {
+                hostname = url.substr(0, hasAnotherSlash);
                 pathname = url.substr(hasAnotherSlash);
-            } else if( url.indexOf('js') !== -1 || url.indexOf('css') !== -1 || url.indexOf('tmpl') !== -1 ) {
+            } else if (url.indexOf('js') !== -1 || url.indexOf('css') !== -1 || url.indexOf('tmpl') !== -1) {
                 isLocal = true;
                 pathname = url;
             } else {
                 hostname = url;
             }
 
-            if( hostname.indexOf(win.location.host)!==-1 ){
+            if (hostname.indexOf(win.location.host) !== -1) {
                 isLocal = true;
             }
         }
@@ -415,11 +452,13 @@
 
     var tag = document.getElementById("loaderjs");
     var app = tag && (tag.getAttribute("data-app") || tag['data-app']);
-    var disableTextInjection = tag && !!(tag.getAttribute("disableTextInjection") || tag['disableTextInjection']);
+    var textInjection = tag && (tag.getAttribute("textInjection") || tag['textInjection']);
     var loader = win.loader = new Loader({
-        disableTextInjection: disableTextInjection
+        textInjection: textInjection
     });
-    if(app){
-        loader.load({url:app});
+    if (app) {
+        loader.load({
+            url: app
+        });
     }
 })(window, undefined);
