@@ -371,8 +371,8 @@
 
     Loader.prototype.injectFile = function(file, promise) {
         var url = file.url,
-            isCSS = this.isCSS(url),
-            isJS = this.isJS(url);
+            isCSS = this.isCSS(url) || (file.type && file.type === 'css'),
+            isJS = this.isJS(url) || (file.type && file.type === 'js');
 
         if (!this.textInjection || !this.has(url)) {
             var charAt0 = url.charAt(0);
