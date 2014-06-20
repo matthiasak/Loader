@@ -4,6 +4,19 @@
         log: function() {}
     });
 
+    ['log', 'warn'].forEach(function(method) {
+        var old = console[method];
+        console[method] = function() {
+            var stack = (new Error()).stack.split(/\n/);
+            // Chrome includes a single "Error" line, FF doesn't.
+            if (stack[0].indexOf('Error') === 0) {
+                stack = stack.slice(1);
+            }
+            var args = [].slice.apply(arguments).concat([stack[1].trim()]);
+            return old.apply(console, args);
+        };
+    });
+
     function Loader(options) {
         options = options || {};
         this.init(options);
@@ -126,6 +139,7 @@
             j.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
             for (var m in g)
                 if (g.hasOwnProperty(m)) j.setRequestHeader(m, g[m]);
+
             function n() {
                 j.abort();
                 h.done(i.ETIMEOUT, "", j);
@@ -332,7 +346,7 @@
             if (!self.loadedItems[file.url]) {
                 self.loadedItems[file.url] = 1;
                 var p = self.loadFile(file);
-                if(!self.textInjection) {
+                if (!self.textInjection) {
                     self.clear(file.url);
                 }
                 promises.push(function() {
