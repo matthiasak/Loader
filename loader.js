@@ -4,19 +4,6 @@
         log: function() {}
     });
 
-    ['log', 'warn'].forEach(function(method) {
-        var old = console[method];
-        console[method] = function() {
-            var stack = (new Error()).stack.split(/\n/);
-            // Chrome includes a single "Error" line, FF doesn't.
-            if (stack[0].indexOf('Error') === 0) {
-                stack = stack.slice(1);
-            }
-            var args = [].slice.apply(arguments).concat([stack[1].trim()]);
-            return old.apply(console, args);
-        };
-    });
-
     function Loader(options) {
         options = options || {};
         this.init(options);
@@ -119,7 +106,7 @@
             return a;
         }
 
-        function g(a, c, d, g) {
+        function g(a, c, d, g, bust_http_cache) {
             var h = new b();
             var j, k;
             d = d || {};
@@ -134,6 +121,10 @@
             if (a === 'GET' && k) {
                 c += '?' + k;
                 k = null;
+            }
+            if (bust_http_cache) {
+                var amp = c.indexOf('?') !== -1 ? '&' : '?';
+                c += amp + '_t=' + (+new Date);
             }
             j.open(a, c);
             j.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
@@ -158,8 +149,8 @@
         }
 
         function h(a) {
-            return function(b, c, d) {
-                return g(a, b, c, d);
+            return function(b, c, d, bust_http_cache) {
+                return g(a, b, c, d, bust_http_cache);
             };
         }
         var i = {
@@ -385,8 +376,8 @@
 
     Loader.prototype.injectFile = function(file, promise) {
         var url = file.url,
-            isCSS = this.isCSS(url) || (file.type && file.type === 'css'),
-            isJS = this.isJS(url) || (file.type && file.type === 'js');
+            isCSS = this.isCSS(url),
+            isJS = this.isJS(url);
 
         if (!this.textInjection || !this.has(url)) {
             var charAt0 = url.charAt(0);
