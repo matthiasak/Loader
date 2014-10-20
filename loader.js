@@ -1,5 +1,4 @@
-;
-(function(win, undef) {
+;(function(win, undef) {
     !(console && console.log) && (window.console = {
         log: function() {}
     });
